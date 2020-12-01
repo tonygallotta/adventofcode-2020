@@ -6,40 +6,52 @@ use std::io::BufRead;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let filename = &args[1];
-    println!("In file {}", filename);
+    println!("Reading file {}", filename);
     let file = fs::File::open(filename).unwrap();
     let reader = io::BufReader::new(file);
-    let mut total_fuel_required = 0;
+    let mut expenses = Vec::new();
     for (_, line) in reader.lines().enumerate() {
-        let mass:u32 = line.unwrap().parse().unwrap(); // Ignore errors.
-        total_fuel_required += total_fuel_requirement(mass);
+        let expense:u32 = line.unwrap().parse().unwrap(); // Ignore errors.
+        expenses.push(expense);
     }
-    println!("Total fuel requirement is {}", total_fuel_required);
+    let summing_pair = sum_to_2020_pair(&expenses);
+    println!("The pair is {}, {}", summing_pair.0, summing_pair.1);
+    println!("Product is {}", summing_pair.0 * summing_pair.1);
+
+
+    let summing_triplet = sum_to_2020_triplet(&expenses);
+    println!("The triplet is {}, {}, {}", summing_triplet.0, summing_triplet.1, summing_triplet.2);
+    println!("Product is {}", summing_triplet.0 * summing_triplet.1 * summing_triplet.2);
 }
 
-fn total_fuel_requirement(mass: u32) -> u32 {
-    if mass < 9 {
-        return 0
+fn sum_to_2020_pair(expenses: &Vec<u32>) -> (u32, u32) {
+    for e1 in expenses.iter() {
+        for e2 in expenses.iter() {
+            if (e1 + e2) == 2020 {
+                println!("{} + {} = 2020", e1, e2);
+                return (*e1, *e2)
+            }
+        }
     }
-    let current_fuel_requirement = fuel_requirement(mass);
-    return current_fuel_requirement + total_fuel_requirement(current_fuel_requirement)
+    return (0, 0)
 }
 
-fn fuel_requirement(mass: u32) -> u32 {
-    return mass / 3 - 2
+
+fn sum_to_2020_triplet(expenses: &Vec<u32>) -> (u32, u32, u32) {
+    for e1 in expenses.iter() {
+        for e2 in expenses.iter() {
+            for e3 in expenses.iter() {
+                if (e1 + e2 + e3) == 2020 {
+                    println!("{} + {} + {} = 2020", e1, e2, e3);
+                    return (*e1, *e2, *e3)
+                }
+            }
+        }
+    }
+    return (0, 0, 0)
 }
 
 #[test]
-fn test_fuel_requirement() {
-    assert_eq!(fuel_requirement(12), 2);
-    assert_eq!(fuel_requirement(14), 2);
-    assert_eq!(fuel_requirement(1969), 654);
-    assert_eq!(fuel_requirement(100756), 33583);
-}
-
-#[test]
-fn test_total_fuel_requirement() {
-    assert_eq!(total_fuel_requirement(12), 2);
-    assert_eq!(total_fuel_requirement(1969), 966);
-    assert_eq!(total_fuel_requirement(100756), 50346);
+fn test() {
+    assert_eq!(2, 4/2);
 }
