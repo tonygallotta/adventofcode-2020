@@ -9,13 +9,19 @@ fn main() {
     println!("Reading file {}", filename);
     let file = fs::File::open(filename).unwrap();
     let reader = io::BufReader::new(file);
-    let mut valid_passwords = 0;
+    let mut part_1_valid_passwords : u32 = 0;
+    let mut part_2_valid_passwords: u32 = 0;
     for (_, line) in reader.lines().enumerate() {
-        if is_valid_password_part2(&line.unwrap()) {
-            valid_passwords += 1;
+        let unwrapped = line.unwrap();
+        if is_valid_password(&unwrapped) {
+            part_1_valid_passwords += 1;
+        }
+        if is_valid_password_part2(&unwrapped) {
+            part_2_valid_passwords += 1;
         }
     }
-    println!("{} valid passwords", valid_passwords);
+    println!("PART 1: {} valid passwords", part_1_valid_passwords);
+    println!("PART 2: {} valid passwords", part_2_valid_passwords);
 }
 
 fn is_valid_password(line: &str) -> bool {
@@ -25,14 +31,14 @@ fn is_valid_password(line: &str) -> bool {
     let max_repetitions: u32 = min_max_repetitions[1].parse().unwrap();
     let required_char = parts[1].chars().nth(0).unwrap();
     let password = parts[2];
-    println!("{} is required {} to {} times", required_char, min_repetitions, max_repetitions);
+    // println!("{} is required {} to {} times", required_char, min_repetitions, max_repetitions);
     let mut occurrences = 0;
     for c in password.chars() {
         if c == required_char {
             occurrences += 1;
         }
     }
-    println!("Found {} occurrences in {}", occurrences, password);
+    // println!("Found {} occurrences in {}", occurrences, password);
     return occurrences >= min_repetitions && occurrences <= max_repetitions;
 }
 
@@ -43,14 +49,7 @@ fn is_valid_password_part2(line: &str) -> bool {
     let second_position: usize = possible_positions[1].parse().unwrap();
     let required_char = parts[1].chars().nth(0).unwrap();
     let password = parts[2];
-    println!("{} is required at {} or {}", required_char, first_position, second_position);
-    let mut occurrences = 0;
-    for c in password.chars() {
-        if c == required_char {
-            occurrences += 1;
-        }
-    }
-    println!("Found {} occurrences in {}", occurrences, password);
+    // println!("{} is required at {} or {}", required_char, first_position, second_position);
     return (password.chars().nth(first_position - 1).unwrap_or('_') == required_char) ^ (password.chars().nth(second_position - 1).unwrap_or('_') == required_char);
 }
 
