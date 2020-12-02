@@ -2,6 +2,8 @@ use std::env;
 use std::fs;
 use std::io;
 use std::io::BufRead;
+use std::collections::HashSet;
+use std::iter::FromIterator;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -25,15 +27,14 @@ fn main() {
 }
 
 fn sum_to_2020_pair(expenses: &Vec<u32>) -> (u32, u32) {
-    for (i, e1) in expenses.iter().enumerate() {
-        for e2 in expenses.iter().skip(i) {
-            if (e1 + e2) == 2020 {
-                println!("{} + {} = 2020", e1, e2);
-                return (*e1, *e2);
-            }
+    let expense_values :HashSet<u32> = HashSet::from_iter(expenses.iter().cloned());
+    for e1 in expenses.iter() {
+        let e2 = 2020 - e1;
+        if expense_values.contains(&e2) {
+            return (*e1, e2);
         }
     }
-    return (0, 0);
+    panic!("No match found")
 }
 
 
@@ -48,7 +49,7 @@ fn sum_to_2020_triplet(expenses: &Vec<u32>) -> (u32, u32, u32) {
             }
         }
     }
-    return (0, 0, 0);
+    panic!("No match found")
 }
 
 #[test]
