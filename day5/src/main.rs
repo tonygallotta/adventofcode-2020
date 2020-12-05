@@ -1,39 +1,47 @@
+use std::cmp::{Ord, Ordering};
 use std::env;
 use std::fs;
 use std::io;
 use std::io::BufRead;
 use std::time::Instant;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Eq, PartialEq)]
+#[allow(dead_code)]
 struct Seat {
-    row: u8, column: u8, id: u32
+    row: u8,
+    column: u8,
+    id: u32,
 }
 
+impl Ord for Seat {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id.cmp(&other.id)
+    }
+}
+
+impl PartialOrd for Seat {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+// PART 1: 828
+// PART 2: 565
 fn main() {
     let timer = Instant::now();
     let filename = env::args().nth(1).unwrap_or(String::from("input.txt"));
     let lines = read_file_to_vec(filename);
-    let mut part_1_answer = 0;
     let mut part_2_answer = 0;
-    let mut seats :Vec<Seat> = Vec::new();
-    for line in lines {
-        seats.push(get_seat(line.as_str()));
-    }
+    let mut seats: Vec<Seat> = lines.iter().map(|line| get_seat(line.as_str())).collect();
+    seats.sort();
+    let part_1_answer = seats[seats.len() - 1].id;
 
-    for seat in &seats {
-        if seat.id > part_1_answer {
-            part_1_answer = seat.id
+    let mut previous_seat_id = seats[0].id;
+    for seat in seats {
+        if seat.id - previous_seat_id == 2 {
+            part_2_answer = previous_seat_id + 1;
         }
-    }
-    let mut sorted_seat_ids : Vec<u32> = seats.iter().map(|s| s.id).collect();
-    sorted_seat_ids.sort();
-    let mut previous_seat_id = sorted_seat_ids[0];
-    for seat_id in sorted_seat_ids {
-        if seat_id - previous_seat_id == 2 {
-            println!("Found the missing seat ID between {} and {}", previous_seat_id, seat_id);
-            part_2_answer = seat_id - 1;
-        }
-        previous_seat_id = seat_id;
+        previous_seat_id = seat.id;
     }
 
     println!("PART 1: {}", part_1_answer);
@@ -53,12 +61,27 @@ fn read_file_to_vec(filename: String) -> Vec<String> {
 }
 
 fn get_seat(encoded: &str) -> Seat {
-    let row_raw : String = encoded.replace("F", "0").replace("B", "1").chars().take(7).collect();
+    let row_raw: String = encoded
+        .replace("F", "0")
+        .replace("B", "1")
+        .chars()
+        .take(7)
+        .collect();
     let row = u8::from_str_radix(&row_raw, 2).unwrap();
 
-    let column_raw : String = encoded.replace("L", "0").replace("R", "1").chars().skip(7).take(3).collect();
+    let column_raw: String = encoded
+        .replace("L", "0")
+        .replace("R", "1")
+        .chars()
+        .skip(7)
+        .take(3)
+        .collect();
     let column = u8::from_str_radix(&column_raw, 2).unwrap();
-    Seat{row: row, column: column, id: row as u32 * 8 + column as u32 }
+    Seat {
+        row: row,
+        column: column,
+        id: row as u32 * 8 + column as u32,
+    }
 }
 
 #[test]
