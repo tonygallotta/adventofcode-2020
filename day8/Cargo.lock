@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "day7"
+name = "day8"
 version = "0.1.0"
 dependencies = [
  "regex",
