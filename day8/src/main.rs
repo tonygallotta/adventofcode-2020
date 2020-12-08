@@ -30,14 +30,14 @@ fn read_file_to_vec(filename: String) -> Vec<String> {
     parsed_lines
 }
 
-fn run_part1(lines: &Vec<String>) -> i32 {
+// Returns a tuple of the accumulator value, and a boolean indicating whether the program ran to completion.
+fn run_program(lines: &Vec<String>) -> (i32, bool) {
     let mut accumulator: i32 = 0;
     let mut instruction_number: usize = 0;
     let mut executed_instructions: HashSet<usize> = HashSet::new();
 
     while !executed_instructions.contains(&instruction_number) && instruction_number < lines.len() {
         let instruction: &String = &lines[instruction_number];
-        println!("{}: {}", instruction_number, instruction);
         let parts: Vec<&str> = Vec::from_iter(instruction.split(" "));
         let op = parts[0];
         let arg: i32 = parts[1].parse().unwrap();
@@ -51,47 +51,20 @@ fn run_part1(lines: &Vec<String>) -> i32 {
             _ => instruction_number += 1,
         }
     }
-    // println!("Got to instruction {}", instruction_number);
-    accumulator
+    (accumulator, instruction_number == lines.len())
 }
 
 fn run_part_2(lines: &Vec<String>) -> i32 {
     for (i, line) in lines.iter().enumerate() {
         if line.contains("nop") || line.contains("jmp") {
             let change_to_try = copy_with_line_change(lines, i);
-            if will_terminate(&change_to_try) {
-                return run_part1(&change_to_try);
+            let run_result = run_program(&change_to_try);
+            if run_result.1 {
+                return run_result.0;
             }
         }
     }
     0
-}
-
-fn will_terminate(lines: &Vec<String>) -> bool {
-    let mut instruction_number: usize = 0;
-    let mut executed_instructions: HashSet<usize> = HashSet::new();
-
-    while !executed_instructions.contains(&instruction_number) && instruction_number < lines.len() {
-        let instruction: &String = &lines[instruction_number];
-        println!("{}: {}", instruction_number, instruction);
-        let parts: Vec<&str> = Vec::from_iter(instruction.split(" "));
-        let op = parts[0];
-        let arg: i32 = parts[1].parse().unwrap();
-        executed_instructions.insert(instruction_number);
-        match op {
-            "acc" => {
-                instruction_number += 1;
-            }
-            "jmp" => instruction_number = add(instruction_number, arg).unwrap(),
-            _ => instruction_number += 1,
-        }
-    }
-    // println!(
-    //     "Got to instruction {} of {}",
-    //     instruction_number,
-    //     lines.len()
-    // );
-    instruction_number == lines.len()
 }
 
 fn copy_with_line_change(lines: &Vec<String>, line_to_change: usize) -> Vec<String> {
@@ -122,22 +95,20 @@ fn add(u: usize, i: i32) -> Option<usize> {
 
 #[allow(unused)]
 fn answers(lines: &Vec<String>) -> (i32, i32) {
-    (run_part1(lines), run_part_2(lines))
+    (run_program(lines).0, run_part_2(lines))
 }
 
 #[test]
 fn test() {
     let lines = read_file_to_vec(String::from("sample_input.txt"));
-    let part_1_answer = run_part1(&lines);
-    println!("PART!: {}", part_1_answer);
+    let (part_1_answer, _) = run_program(&lines);
+    println!("PART1: {}", part_1_answer);
 }
 
 #[test]
 fn test_part2() {
     let lines = read_file_to_vec(String::from("sample_input.txt"));
     let good_example = copy_with_line_change(&lines, 7);
-    assert!(!will_terminate(&lines));
-    assert!(will_terminate(&good_example));
-    // let part_2_answer = run_part2(&lines);
-    // println!("PART 2: {}", part_2_answer);
+    assert!(!run_program(&lines).1);
+    assert!(run_program(&good_example).1);
 }
