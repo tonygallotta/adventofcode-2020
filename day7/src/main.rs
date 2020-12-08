@@ -58,7 +58,7 @@ fn to_bags(lines: &Vec<String>) -> HashMap<String, Bag> {
 
         let bag = Bag {
             color: String::from(color.replace("bags", "").replace("bag", "").trim()),
-            allowed_bags: allowed_bags,
+            allowed_bags,
         };
         let key = bag.color.clone();
         bags_by_name.insert(key, bag);
@@ -70,8 +70,7 @@ fn to_bags(lines: &Vec<String>) -> HashMap<String, Bag> {
 fn answers(bags_by_name: &HashMap<String, Bag>) -> (u32, u32) {
     let desired_bag = String::from("shiny gold");
     let part_1_answer = count_possible_holders(&desired_bag, bags_by_name);
-    let bag_name = String::from("shiny gold");
-    let shiny_gold_bag = bags_by_name.get(bag_name.as_str()).unwrap();
+    let shiny_gold_bag = bags_by_name.get(desired_bag.as_str()).unwrap();
 
     (
         part_1_answer,
@@ -121,6 +120,7 @@ fn contained_bag_count(bag_to_check: &Bag, bags_by_name: &HashMap<String, Bag>) 
     // println!("{} contains {} bags", bag_to_check.color, answer);
     return answer;
 }
+
 #[test]
 fn test() {
     let lines = read_file_to_vec(String::from("sample_input.txt"));
