@@ -53,8 +53,8 @@ fn run_part2(numbers: &Vec<u64>, sum_to_number: u64) -> u64 {
         current_window.push(number.clone());
         let mut current_sum: u64 = current_window.iter().sum();
         while current_sum > sum_to_number {
-            current_window.drain(..1);
-            current_sum = current_window.iter().sum();
+            let removed = current_window.drain(..1).next().unwrap_or(0);
+            current_sum -= removed;
         }
         if current_sum == sum_to_number {
             println!(
