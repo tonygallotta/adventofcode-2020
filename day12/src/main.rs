@@ -1,9 +1,105 @@
 use regex::Regex;
 use std::env;
+use std::fmt;
 use std::fs;
 use std::io;
 use std::io::BufRead;
+use std::str::FromStr;
 use std::time::Instant;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum Direction {
+    E,
+    S,
+    N,
+    W,
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+enum Action {
+    E,
+    S,
+    N,
+    W,
+    L,
+    R,
+    F,
+}
+
+impl FromStr for Action {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Action, ()> {
+        match s {
+            "E" => Ok(Action::E),
+            "S" => Ok(Action::S),
+            "N" => Ok(Action::N),
+            "W" => Ok(Action::W),
+            "L" => Ok(Action::L),
+            "R" => Ok(Action::R),
+            "F" => Ok(Action::F),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Action {
+    fn to_direction(&self) -> Option<Direction> {
+        match self {
+            Action::E => Option::Some(Direction::E),
+            Action::S => Option::Some(Direction::S),
+            Action::W => Option::Some(Direction::W),
+            Action::N => Option::Some(Direction::N),
+            _ => Option::None,
+        }
+    }
+}
+
+impl FromStr for Direction {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Direction, ()> {
+        match s {
+            "E" => Ok(Direction::E),
+            "S" => Ok(Direction::S),
+            "N" => Ok(Direction::N),
+            "W" => Ok(Direction::W),
+            _ => Err(()),
+        }
+    }
+}
+
+impl fmt::Display for Direction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Direction::E => "E",
+                Direction::N => "N",
+                Direction::S => "S",
+                Direction::W => "W",
+            }
+        )
+    }
+}
+impl Direction {
+    fn rotate(&self, degrees: i32) -> Direction {
+        let directions: Vec<Direction> =
+            vec![Direction::E, Direction::S, Direction::W, Direction::N];
+        let rotation = degrees / 90;
+        let mut current_face_index = directions.iter().position(|d| d == self).unwrap();
+        current_face_index = add(current_face_index, 4 + rotation).unwrap() % 4;
+        directions[current_face_index]
+    }
+
+    fn multiplier(&self) -> i32 {
+        match self {
+            Direction::S | Direction::W => -1,
+            _ => 1,
+        }
+    }
+}
 
 // PART 1: 636
 // PART 2: 26841
@@ -36,8 +132,7 @@ fn answers(lines: &Vec<String>) -> (u64, u64) {
 }
 
 fn run_part1(lines: &Vec<String>) -> u64 {
-    let directions = vec!['E', 'S', 'W', 'N'];
-    let mut face = 'E';
+    let mut face = Direction::E;
     let mut east_west_position: i32 = 0;
     let mut north_south_position: i32 = 0;
     let line_regex = Regex::new(r"^(?P<action>\w)(?P<value>\d+)$").unwrap();
@@ -47,7 +142,7 @@ fn run_part1(lines: &Vec<String>) -> u64 {
             .name("action")
             .unwrap()
             .as_str()
-            .parse::<char>()
+            .parse::<Action>()
             .unwrap();
         let value = captures
             .name("value")
@@ -55,32 +150,19 @@ fn run_part1(lines: &Vec<String>) -> u64 {
             .as_str()
             .parse::<i32>()
             .unwrap();
-        // println!("action = {}, value = {}", action, value);
         match action {
-            'F' => match face {
-                'E' => east_west_position += value,
-                'W' => east_west_position -= value,
-                'N' => north_south_position += value,
-                'S' => north_south_position -= value,
-                _ => {}
+            Action::F => match face {
+                Direction::N | Direction::S => north_south_position += face.multiplier() * value,
+                Direction::E | Direction::W => east_west_position += face.multiplier() * value,
             },
-            'N' => north_south_position += value,
-            'S' => north_south_position -= value,
-            'E' => east_west_position += value,
-            'W' => east_west_position -= value,
-            'R' => {
-                let rotation = value / 90;
-                let mut current_face_index = directions.iter().position(|d| d == &face).unwrap();
-                current_face_index = add(current_face_index, rotation).unwrap() % 4;
-                face = directions[current_face_index];
+            Action::N | Action::S => {
+                north_south_position += action.to_direction().unwrap().multiplier() * value
             }
-            'L' => {
-                let rotation = value / 90;
-                let mut current_face_index = directions.iter().position(|d| d == &face).unwrap();
-                current_face_index = add(current_face_index, 4 - rotation).unwrap() % 4;
-                face = directions[current_face_index];
+            Action::E | Action::W => {
+                east_west_position += action.to_direction().unwrap().multiplier() * value
             }
-            _ => {}
+            Action::R => face = face.rotate(value),
+            Action::L => face = face.rotate(-value),
         }
     }
     let manhattan_distance = east_west_position.abs() + north_south_position.abs();
@@ -88,8 +170,8 @@ fn run_part1(lines: &Vec<String>) -> u64 {
 }
 
 fn run_part2(lines: &Vec<String>) -> u64 {
-    let directions = vec!['E', 'S', 'W', 'N'];
-    let mut waypoint_face = ('E', 'N');
+    // Always keep the E/W direction in position 0, and N/S in position 1 to simplify action processing
+    let mut waypoint_face = (Direction::E, Direction::N);
     let mut waypoint = (10, 1);
     let mut east_west_position: i32 = 0;
     let mut north_south_position: i32 = 0;
@@ -100,7 +182,7 @@ fn run_part2(lines: &Vec<String>) -> u64 {
             .name("action")
             .unwrap()
             .as_str()
-            .parse::<char>()
+            .parse::<Action>()
             .unwrap();
         let value = captures
             .name("value")
@@ -108,129 +190,38 @@ fn run_part2(lines: &Vec<String>) -> u64 {
             .as_str()
             .parse::<i32>()
             .unwrap();
-        // println!("action = {}, value = {}", action, value);
         match action {
-            'F' => {
-                // println!("Now facing {}, {}", waypoint_face.0, waypoint_face.1);
-                match waypoint_face {
-                    ('E', 'N') => {
-                        east_west_position += waypoint.0 * value;
-                        north_south_position += waypoint.1 * value;
-                    }
-                    ('W', 'N') => {
-                        east_west_position -= waypoint.0 * value;
-                        north_south_position += waypoint.1 * value;
-                    }
-                    ('W', 'S') => {
-                        east_west_position -= waypoint.0 * value;
-                        north_south_position -= waypoint.1 * value;
-                    }
-                    ('E', 'S') => {
-                        east_west_position += waypoint.0 * value;
-                        north_south_position -= waypoint.1 * value;
-                    }
-                    ('N', 'E') => {
-                        east_west_position += waypoint.1 * value;
-                        north_south_position += waypoint.0 * value;
-                    }
-                    ('N', 'W') => {
-                        east_west_position -= waypoint.1 * value;
-                        north_south_position += waypoint.0 * value;
-                    }
-                    ('S', 'W') => {
-                        east_west_position -= waypoint.1 * value;
-                        north_south_position -= waypoint.0 * value;
-                    }
-                    ('S', 'E') => {
-                        east_west_position += waypoint.1 * value;
-                        north_south_position -= waypoint.0 * value;
-                    }
-                    _ => {}
-                };
+            Action::F => {
+                east_west_position += waypoint.0 * waypoint_face.0.multiplier() * value;
+                north_south_position += waypoint.1 * waypoint_face.1.multiplier() * value;
             }
-            'N' => match waypoint_face.0 {
-                'E' | 'W' => match waypoint_face.1 {
-                    'N' => waypoint.1 += value,
-                    'S' => waypoint.1 -= value,
-                    _ => {}
-                },
-                'N' => waypoint.0 += value,
-                'S' => waypoint.0 -= value,
-                _ => {}
-            },
-            'S' => match waypoint_face.0 {
-                'E' | 'W' => match waypoint_face.1 {
-                    'N' => waypoint.1 -= value,
-                    'S' => waypoint.1 += value,
-                    _ => {}
-                },
-                'N' => waypoint.0 -= value,
-                'S' => waypoint.0 += value,
-                _ => {}
-            },
-            'E' => match waypoint_face.0 {
-                'N' | 'S' => match waypoint_face.1 {
-                    'E' => waypoint.1 += value,
-                    'W' => waypoint.1 -= value,
-                    _ => {}
-                },
-                'E' => waypoint.0 += value,
-                'W' => waypoint.0 -= value,
-                _ => {}
-            },
-            'W' => match waypoint_face.0 {
-                'N' | 'S' => match waypoint_face.1 {
-                    'E' => waypoint.1 -= value,
-                    'W' => waypoint.1 += value,
-                    _ => {}
-                },
-                'E' => waypoint.0 -= value,
-                'W' => waypoint.0 += value,
-                _ => {}
-            },
-            'R' => {
-                let rotation = value / 90;
-                let mut current_face_index = (
-                    directions
-                        .iter()
-                        .position(|d| d == &waypoint_face.0)
-                        .unwrap(),
-                    directions
-                        .iter()
-                        .position(|d| d == &waypoint_face.1)
-                        .unwrap(),
-                );
-                current_face_index = (
-                    add(current_face_index.0, rotation).unwrap() % 4,
-                    add(current_face_index.1, rotation).unwrap() % 4,
-                );
-                waypoint_face = (
-                    directions[current_face_index.0],
-                    directions[current_face_index.1],
-                );
+            Action::N | Action::S => {
+                waypoint.1 += if waypoint_face.1 == action.to_direction().unwrap() {
+                    1
+                } else {
+                    -1
+                } * value;
             }
-            'L' => {
-                let rotation = value / 90;
-                let mut current_face_index = (
-                    directions
-                        .iter()
-                        .position(|d| d == &waypoint_face.0)
-                        .unwrap(),
-                    directions
-                        .iter()
-                        .position(|d| d == &waypoint_face.1)
-                        .unwrap(),
-                );
-                current_face_index = (
-                    add(current_face_index.0, 4 - rotation).unwrap() % 4,
-                    add(current_face_index.1, 4 - rotation).unwrap() % 4,
-                );
-                waypoint_face = (
-                    directions[current_face_index.0],
-                    directions[current_face_index.1],
-                );
+            Action::E | Action::W => {
+                waypoint.0 += if waypoint_face.0 == action.to_direction().unwrap() {
+                    1
+                } else {
+                    -1
+                } * value;
             }
-            _ => {}
+            Action::L | Action::R => {
+                let multiplier = if action == Action::L { -1 } else { 1 };
+                let new_face = (
+                    waypoint_face.0.rotate(multiplier * value),
+                    waypoint_face.1.rotate(multiplier * value),
+                );
+                if new_face.0 == Direction::N || new_face.0 == Direction::S {
+                    waypoint = (waypoint.1, waypoint.0);
+                    waypoint_face = (new_face.1, new_face.0);
+                } else {
+                    waypoint_face = new_face;
+                }
+            }
         }
     }
     let manhattan_distance = east_west_position.abs() + north_south_position.abs();
@@ -254,4 +245,15 @@ fn test_part1() {
 fn test_part2() {
     let lines = read_file_to_vec(String::from("sample_input.txt"));
     assert_eq!(run_part2(&lines), 286);
+    let input = read_file_to_vec(String::from("input.txt"));
+    assert_eq!(run_part2(&input), 26841);
+}
+
+#[test]
+fn test_rotate() {
+    assert_eq!(Direction::E.rotate(90), Direction::S);
+    assert_eq!(Direction::E.rotate(-90), Direction::N);
+    assert_eq!(Direction::E.rotate(180), Direction::W);
+    assert_eq!(Direction::E.rotate(-270), Direction::S);
+    assert_eq!(Direction::E.rotate(270), Direction::N);
 }
